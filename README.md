@@ -1,10 +1,29 @@
 # Product API
 
-API voor producten en categorieën.
+Een RESTful API gebouwd met **Node.js**, **Express** en **Drizzle ORM** voor het beheren van **producten** en **categorieën**.  
+De API ondersteunt **CRUD-operaties**, **paginatie**, **zoekfunctionaliteit** en **server-side validatie**.
+
+---
+
+## Features
+- CRUD voor producten en categorieën
+- Paginatie met `limit` en `offset`
+- Zoeken op naam
+- Validatie van invoer
+- MySQL-database via Drizzle ORM
+- RESTful structuur
+
+---
+
+## Vereisten
+- Node.js (v18 of hoger)
+- MySQL
+
+---
 
 ## Installatie
 
-```
+```bash
 npm install
 ```
 
