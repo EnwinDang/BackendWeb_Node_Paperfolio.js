@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Price Alerts API Documentation</title>
+</head>
+<body>
+  <h1>Price Alerts API</h1>
+  <p>
+    A database-driven REST API for tracking cryptocurrency assets and letting people
+    request an alert when an asset reaches a target price. Built with Node.js, Express
+    and better-sqlite3.
+  </p>
+
+  <h2>Authentication</h2>
+  <p>
+    Write operations on <code>/assets</code> and every operation on <code>/alerts</code>
+    (alerts contain a personal email address) require an API key. Send it as a request
+    header:
+  </p>
+  <pre>x-api-key: &lt;your API key&gt;</pre>
+  <p>Requests missing the header, or sending the wrong key, receive a 401 response.</p>
+
+  <h2>Assets</h2>
+
+  <h3>GET /assets</h3>
+  <p>List assets. Public, no API key required.</p>
+  <ul>
+    <li><code>limit</code> (optional, integer, default 20) - page size</li>
+    <li><code>offset</code> (optional, integer, default 0) - page start</li>
+    <li><code>name</code> (optional, string) - filter by partial name match</li>
+    <li><code>symbol</code> (optional, string) - filter by partial symbol match</li>
+    <li><code>sort</code> (optional, e.g. <code>current_price</code> or <code>-created_at</code>) - sort by field, ascending by default, leading <code>-</code> for descending</li>
+  </ul>
+  <p>Example: <code>GET /assets?limit=10&amp;offset=0&amp;symbol=BT&amp;sort=-current_price</code></p>
+
+  <h3>GET /assets/:id</h3>
+  <p>Get a single asset by id. Public, no API key required.</p>
+
+  <h3>POST /assets</h3>
+  <p>Create a new asset. Requires API key.</p>
+  <pre>{
+  "name": "Bitcoin",
+  "symbol": "BTC",
+  "category": "Layer 1",
+  "current_price": 62000,
+  "is_active": true
+}</pre>
+
+  <h3>PUT /assets/:id</h3>
+  <p>
+    Update an asset. Requires API key. Any subset of the create fields may be sent.
+    If <code>current_price</code> changes, every pending (not yet triggered) alert on
+    this asset is re-evaluated as a side effect; alerts whose condition is now met are
+    flipped to triggered. The response includes <code>triggeredAlerts</code>, the count
+    of alerts newly triggered by this update.
+  </p>
+  <pre>{
+  "current_price": 65000
+}</pre>
+
+  <h3>DELETE /assets/:id</h3>
+  <p>Delete an asset. Requires API key. Deleting an asset also deletes its alerts (foreign key cascade).</p>
+
+  <h2>Price Alerts</h2>
+  <p>Every endpoint below requires the API key, including reads, since an alert's email field is personal data.</p>
+
+  <h3>GET /alerts</h3>
+  <p>List alerts. Requires API key.</p>
+  <ul>
+    <li><code>limit</code> (optional, integer, default 20)</li>
+    <li><code>offset</code> (optional, integer, default 0)</li>
+    <li><code>email</code> (optional, string) - filter by partial email match</li>
+    <li><code>asset_id</code> (optional, integer) - filter by asset</li>
+    <li><code>direction</code> (optional, "above" or "below")</li>
+    <li><code>is_triggered</code> (optional, "true" or "false")</li>
+    <li><code>sort</code> (optional, e.g. <code>target_price</code> or <code>-created_at</code>)</li>
+  </ul>
+  <p>Example: <code>GET /alerts?direction=above&amp;is_triggered=false</code></p>
+
+  <h3>GET /alerts/:id</h3>
+  <p>Get a single alert by id. Requires API key.</p>
+
+  <h3>POST /alerts</h3>
+  <p>
+    Create a new alert. Requires API key. <code>asset_id</code> must reference an
+    existing asset. The target price must make logical sense relative to the asset's
+    current price: for direction <code>"above"</code>, <code>target_price</code> must
+    be greater than the current price; for <code>"below"</code>, it must be less. A
+    target price within about 0.5% of the current price is also rejected as not
+    meaningfully different.
+  </p>
+  <pre>{
+  "asset_id": 1,
+  "email": "user@example.com",
+  "direction": "above",
+  "target_price": 70000
+}</pre>
+
+  <h3>PUT /alerts/:id</h3>
+  <p>Update an alert, e.g. change its target price. Requires API key. Re-runs the same validation as creation.</p>
+  <pre>{
+  "target_price": 72000
+}</pre>
+
+  <h3>DELETE /alerts/:id</h3>
+  <p>Delete an alert. Requires API key.</p>
+
+  <h2>Response shape</h2>
+  <p>Successful responses: <code>{ "success": true, "data": ... }</code>, list endpoints also include a <code>pagination</code> object.</p>
+  <p>Error responses: <code>{ "success": false, "error": "..." }</code> or, for validation failures, <code>{ "success": false, "errors": [ { "field": "...", "message": "..." } ] }</code>.</p>
+</body>
+</html>
