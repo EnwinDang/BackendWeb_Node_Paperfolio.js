@@ -5,10 +5,7 @@ function isNotEmpty(value) {
 }
 
 function isValidNumber(value) {
-  if (value === null || value === undefined || value === '') return false;
-  if (typeof value === 'boolean') return false;
-  const num = Number(value);
-  return !Number.isNaN(num) && Number.isFinite(num);
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 function isPositiveNumber(value) {

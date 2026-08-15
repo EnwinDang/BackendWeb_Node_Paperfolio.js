@@ -8,7 +8,7 @@ function validateAlert(data, db, { isUpdate = false, existingAlert = null } = {}
   const errors = [];
 
   if (!isUpdate || data.asset_id !== undefined) {
-    if (!isNotEmpty(data.asset_id) || !Number.isInteger(Number(data.asset_id))) {
+    if (!isValidNumber(data.asset_id) || !Number.isInteger(data.asset_id)) {
       errors.push({ field: 'asset_id', message: 'asset_id is required and must be an integer' });
     }
   }
