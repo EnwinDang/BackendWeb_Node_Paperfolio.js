@@ -1,20 +1,60 @@
 # Price Alerts API
 
 Een database-driven REST API voor het bijhouden van cryptomunten en het instellen van
-prijsalerts. Standalone project — gebruikt geen gedeelde database met project 1
-(PaperFolio), maar kan er wel mee gekoppeld worden.
+prijsalerts, gebouwd met Node.js en Express.
 
-## Aan de slag
+## Over het Project
 
+Deze API laat toe om assets (cryptomunten) bij te houden en price alerts in te stellen:
+"waarschuw mij wanneer asset X een bepaalde prijs bereikt". Het is een standalone
+project met zijn eigen SQLite-database — het werkt volledig op zichzelf, maar kan ook
+gekoppeld worden aan een apart Laravel-project (PaperFolio) dat deze API als client
+gebruikt.
+
+## Vereisten
+
+- Node.js >= 20
+- npm
+
+## Installatie
+
+### Stap 1: Clone de Repository
+```bash
+git clone <repository-url>
+cd price-alerts-api
+```
+
+### Stap 2: Installeer Dependencies
 ```bash
 npm install
+```
+
+### Stap 3: Kopieer Environment File
+```bash
 cp .env.example .env
-# zet API_KEY in .env op een geheime string naar keuze
-npm run seed   # zaait 6 voorbeeld-assets (BTC, ETH, BNB, SOL, XRP, ADA)
+```
+
+### Stap 4: Configureer de API Key
+Open `.env` en zet `API_KEY` op een geheime string naar keuze:
+```env
+PORT=4000
+API_KEY=jouw-eigen-geheime-sleutel
+```
+
+## Database Setup
+
+### Stap 1: Zaai de Database
+Dit maakt `data.sqlite` aan en vult die met 6 voorbeeld-assets (BTC, ETH, BNB, SOL, XRP, ADA):
+```bash
+npm run seed
+```
+
+### Stap 2: Start de Server
+```bash
 npm run dev
 ```
 
-De server draait op `http://localhost:4000`. Ga naar `http://localhost:4000/` voor de
+De API draait nu op `http://localhost:4000`. Ga naar `http://localhost:4000/` voor de
 volledige documentatie van alle endpoints, met voorbeelden.
 
 ## Authenticatie
@@ -39,27 +79,79 @@ Stuur de key mee als header: `x-api-key: <jouw API_KEY uit .env>`
 | PUT     | /alerts/:id    | API key   | |
 | DELETE  | /alerts/:id    | API key   | |
 
-## Validatie
+## Features
 
-Basis: verplichte velden, geen cijfers in `assets.name`, `assets.symbol` moet
-`^[A-Z]{2,10}$` volgen, geldig e-mailadres voor alerts.
+### Basisfunctionaliteit
+- Volledige CRUD voor twee entiteiten: assets en price alerts
+- Paginatie via `limit` en `offset`
+- Zoeken op één of meerdere velden
+- Root-pagina (`/`) met volledige documentatie van alle endpoints
 
-Geavanceerd: de doelprijs van een alert moet logisch zijn tegenover de huidige prijs van
-de asset — bij `direction: "above"` moet de doelprijs hoger liggen, bij `"below"` lager.
-Anders wordt de alert geweigerd.
+### Validatie
+- Basis: verplichte velden, `assets.name` weigert cijfers, `assets.symbol` moet
+  `^[A-Z]{2,10}$` volgen, `price_alerts.email` moet een geldig e-mailadres zijn
+- Geavanceerd: de doelprijs van een alert wordt vergeleken met de huidige prijs van de
+  asset — bij `direction: "above"` moet de doelprijs hoger liggen dan de huidige prijs,
+  bij `"below"` lager. Anders wordt de alert geweigerd als onlogisch
 
-## Bronnen
+### Extra Features
+- Sorteren van resultaten (`sort=veld` of `sort=-veld` voor aflopend)
+- Zoeken op meerdere velden tegelijk (bv. `direction` + `is_triggered` bij alerts)
+- Resultaten beperken tot geauthenticeerde gebruikers: bij `/alerts` is zelfs lezen
+  afgeschermd met een API key, aangezien een alert een persoonlijk e-mailadres bevat
+- Prijswijzigingen op een asset (`PUT /assets/:id`) triggeren automatisch de evaluatie
+  van alle openstaande alerts op die asset — geen apart endpoint nodig
 
-- Express documentatie — https://expressjs.com/
-- better-sqlite3 documentatie — https://github.com/WiseLibs/better-sqlite3
+## Projectstructuur
 
-## Built With
+```
+db/
+  index.js          opent data.sqlite, maakt tabellen aan indien nog niet aanwezig
+  seed.js            zaait 6 voorbeeld-assets
+validation/
+  helpers.js          kleine pure hulpfuncties (isNotEmpty, isValidNumber, ...)
+  assetValidation.js  validatie voor assets
+  alertValidation.js  validatie voor alerts, incl. de cross-field regel en de check
+                       of de asset bestaat (vereist een DB-lookup)
+middleware/
+  auth.js             controleert de x-api-key header
+  errorHandler.js     globale Express error handler -> nette JSON-fouten i.p.v.
+                       Express' standaard HTML stack-trace pagina
+routes/
+  assets.js
+  alerts.js
+public/
+  index.html          de documentatiepagina op de root
+server.js             koppelt alles aan elkaar
+```
 
-* [Node.js](https://nodejs.org) — runtime (v20+)
-* [Express](https://expressjs.com) — web framework
-* [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) — database, synchroon, geen ORM
-* **Claude (Anthropic)** — hielp bij het opzetten van het project, het implementeren van
-  routes/validatie/middleware, debuggen, en het testen van elk endpoint
+## Ontwerpkeuzes
+
+- **better-sqlite3, geen ORM**: synchroon en zonder configuratie, voldoende voor twee
+  tabellen — een ORM zou hier enkel indirectie toevoegen zonder iets duidelijker te
+  maken.
+- **CommonJS** (`require`/`module.exports`) in plaats van ESM, om het simpel te houden.
+- Route handlers gebruiken geen `try/catch` per stuk: better-sqlite3 is volledig
+  synchroon, en Express stuurt een synchrone fout automatisch door naar
+  `middleware/errorHandler.js`.
+
+## Technologieën
+
+- Node.js (v20+)
+- Express
+- better-sqlite3 (synchrone SQLite-driver, geen ORM)
+
+## Bronvermeldingen
+
+### Documentatie
+- Express: https://expressjs.com/
+- better-sqlite3: https://github.com/WiseLibs/better-sqlite3
+
+### AI Assistentie
+**Claude (Anthropic)**
+- Gebruikt voor ondersteuning bij projectontwikkeling
+- Specifieke hulp bij: opzetten van het project, implementatie van routes/validatie/
+  middleware, debuggen, en het live testen van elk endpoint
 
 ## Licentie
 
